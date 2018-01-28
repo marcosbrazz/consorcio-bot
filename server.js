@@ -1,16 +1,17 @@
 var schedule = require('node-schedule');
-const fs = require('fs');
-const cheerio = require('cheerio');
-var express = require('express'),
-
-
+const $ = require('cheerio');
+var request = require('request');
+var express = require('express');
 var send = require('gmail-send')({
 	user: 'marcos.brazz@gmail.com',
   	pass: 'jqaodenahysxnkch',
   	to: 'marcos.brazz@gmail.com'
 });
 
-var job = schedule.scheduleJob('00 9 * * *', function() {
+var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
+    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
+
+var jobtest = schedule.scheduleJob('00 9 * * *', function() {
   console.log('Executing consorcio-bot by job');
   consorciobot.start();
 });
@@ -30,26 +31,51 @@ var consorciobot = {
 		bilhetes : []
 	},
 
-	email = {},
+	email: {},
 
 	start: function() {
-		fs.readFile('federal', 'utf-8', (err, data) => {
-			if(err) throw err;
-			var $ = cheerio.load(data);
+		request({			
+			url: 'http://loterias.caixa.gov.br/wps/portal/!ut/p/a1/04_Sj9CPykssy0xPLMnMz0vMAfGjzOLNDH0MPAzcDbz8vTxNDRy9_Y2NQ13CDA0MzIAKIoEKnN0dPUzMfQwMDEwsjAw8XZw8XMwtfQ0MPM2I02-AAzgaENIfrh-FqsQ9wBmoxN_FydLAGAgNTKEK8DkRrACPGwpyQyMMMj0VAYe29yM!/dl5/d5/L2dBISEvZ0FBIS9nQSEh/pw/Z7_61L0H0G0J0VSC0AC4GLFAD20G0/res/id=buscaResultado/c=cacheLevelPage/=/?timestampAjax=1517163939153',
+			jar: true
+		}, 
+		(error, response, body) => {
+			var resultado = JSON.parse(body);
+			if(error) {
+				console.log("ERROR: " + error.message);
+				this.alertaErro(error.message);
+				return;
+			}
+			if(response.statusCode != 200) {
+				error = new Error('Request Failed.\n' +
+                      `Status Code: ${statusCode}`);
+    			console.error(error.message);
+    			this.alertaErro(error.message);
+    			return;
+			}
+			if(resultado.mensagens) {
+				error = new Error(resultado.mensagens[0]);
+    			console.error(error.message);
+    			this.alertaErro(error.message);
+    			return;
+			}
+				
 			var centenas = new Array();
 			var centena = 0; 
 			var centenaSorteada = 0;
-			if($('.resultado-loteria table tbody tr td:nth-child(2)').length == 0) {
-				alertaErro('A query para obter os bilhetes não retornou nada !');
-				return;
-			}
-			$('.resultado-loteria table tbody tr td:nth-child(2)').each((index, td) => {
-				var bilhete = $(td).text();
-				resumo.bilhetes.push(bilhete);
-				console.log(bilhete + '\n');
-		    	centenas.push(bilhete.substr(2,4));
-		    	centenas.push(bilhete.substr(1,3));    
-				var pos = bilhete.search("162");
+
+			$([
+				resultado.premios[0].premio1,
+				resultado.premios[0].premio2,
+				resultado.premios[0].premio3,
+				resultado.premios[0].premio4,
+				resultado.premios[0].premio5,
+
+			]).each((index, premio) => {				
+				this.resumo.bilhetes.push(premio);
+				// console.log('Bilhete: ' + premio + '\n');
+		    	centenas.push(premio.substr(2,4));
+		    	centenas.push(premio.substr(1,3));    
+				var pos = premio.search("162");
 				if(pos == 2) {
 			      centena = i*2 + 1;
 				}
@@ -61,11 +87,11 @@ var consorciobot = {
 				}
 			});	
 			if(centenaSorteada > 0) {
-				resumo.centenas = centenas;
-				resumo.centenaSorteada = centenaSorteada;
-		   		alertarContemplacao();
+				this.resumo.centenas = centenas;
+				this.resumo.centenaSorteada = centenaSorteada;
+		   		this.alertarContemplacao();
 			}
-			
+
 		});
 	},
 
@@ -112,3 +138,14 @@ var consorciobot = {
 
 
 };
+
+app.use(function(err, req, res, next){
+  console.error(err.stack);
+  res.status(500).send('Something bad happened!');
+});
+
+app.listen(port, ip);
+
+console.log('Server running on http://%s:%s', ip, port);
+
+module.exports = app ;
