@@ -21,6 +21,7 @@ var app = express();
 app.get('/check', function(req, res) {
 	console.log('Executing consorcio-bot manually');
 	consorciobot.start();
+	res.send('Done');
 }) ;
 
 
