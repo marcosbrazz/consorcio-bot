@@ -8,8 +8,7 @@ var send = require('gmail-send')({
   	to: 'marcos.brazz@gmail.com'
 });
 
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
+const PORT = process.env.PORT || 5000
 
 var jobtest = schedule.scheduleJob('00 9 * * *', function() {
   console.log('Executing consorcio-bot by job');
@@ -145,8 +144,6 @@ app.use(function(err, req, res, next){
   res.status(500).send('Something bad happened!');
 });
 
-app.listen(port, ip);
-
-console.log('Server running on http://%s:%s', ip, port);
+app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 
 module.exports = app ;
