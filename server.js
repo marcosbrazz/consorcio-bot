@@ -97,7 +97,7 @@ var consorciobot = {
 	},
 
 	alertarContemplacao: function() {	
-	  	email.subject = 'FUI CONTEMPLADO na centena: ' + resumo.centenaSorteada + ' !!!!';
+	  email.subject = 'FUI CONTEMPLADO na centena: ' + resumo.centenaSorteada + ' !!!!';
 		email.html = "Bilhetes: \n\n" +
 		    "<table border='1'>" +
 		      "<tr>" + 
