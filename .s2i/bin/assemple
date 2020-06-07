@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "Pre-invocation changes..."
+
+/usr/libexec/s2i/assemble
+
+rc=$?
+
+if [ $rc -eq 0 ]; then
+    echo "Post-invocation changes..."
+else
+    echo "Error: assemble failed!"
+fi
+
+exit $rc
